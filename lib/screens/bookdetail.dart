@@ -35,22 +35,49 @@ class Book_content extends StatefulWidget {
 }
 
 class FlipState extends State<Book_content> {
-  double y = 0;
+  late AccelerometerEvent event;
+  late StreamSubscription accel;
   late PdfViewerController _pdfViewerController;
+  bool sensorIsActived = false;
 
   @override
   void initState() {
     _pdfViewerController = PdfViewerController();
-    gyroscopeEvents.listen((GyroscopeEvent event) {
-      y = event.y;
-      if (y > 0)
-        _pdfViewerController.nextPage();
-      else if (y < 0) _pdfViewerController.previousPage();
-      setState(() {
-        
-      });
+    super.initState(); 
+  }
+
+  double right = 180;
+  double left = 180;
+  int count = 0;
+
+  void setPosition(AccelerometerEvent event) {
+    if (event == null) {
+      return;
+    }
+    setState(() {
+      left = ((event.x * 20) + 160);
     });
-    super.initState();
+    setState(() {
+      right = ((event.x * 20) - 160);
+    });
+  }
+
+  void startRead() {
+    if (accel == null) {
+      accel = accelerometerEvents.listen((AccelerometerEvent eve) {
+        setState(() {
+          event = eve;
+        });
+      });
+    } else {
+      accel.resume();
+    }
+  }
+
+  @override
+  void dispose() {
+    accel.cancel();
+    super.dispose();
   }
 
   @override
