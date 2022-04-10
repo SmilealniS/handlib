@@ -43,14 +43,16 @@ class FlipState extends State<Book_content> {
               x = snapshot.data!.x;
               y = snapshot.data!.y;
               print([x, y]);
-              if (y > 0) {
+              if (y > 3 && y > 0) {
                 _pdfViewerController.jumpToPage(page + 1);
-              } else if (y < 0) {
+                y = 0;
+              } else if (y < -3 && y < 0) {
                 if (page == 1) {
                   _pdfViewerController.jumpToPage(1);
                 } else {
                   _pdfViewerController.jumpToPage(page - 1);
                 }
+                y = 0;
               }
             }
             return SfPdfViewer.asset(
