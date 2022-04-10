@@ -1,30 +1,7 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:handlib/models/booklists.dart';
+import 'package:sensors_plus/sensors_plus.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
-
-import 'package:sensors/sensors.dart';
-
-// class Book_content extends StatelessWidget {
-//   static const routeName = '/book_content';
-//   const Book_content({Key? key}) : super(key: key);
-
-//   @override
-//   Widget build(BuildContext context) {
-//     final data = ModalRoute.of(context)!.settings.arguments as Book;
-//     return Scaffold(
-//       resizeToAvoidBottomInset: false,
-//       appBar: AppBar(
-//         title: Text(data.title),
-//       ),
-//       body: SfPdfViewer.asset(
-//         data.pdf,
-//         pageLayoutMode: PdfPageLayoutMode.single,
-//       ),
-//     );
-//   }
-// }
 
 class Book_content extends StatefulWidget {
   static const routeName = '/book_content';
@@ -35,64 +12,58 @@ class Book_content extends StatefulWidget {
 }
 
 class FlipState extends State<Book_content> {
-  late AccelerometerEvent event;
-  late StreamSubscription accel;
+  double x = 0;
+  double y = 0;
   late PdfViewerController _pdfViewerController;
-  bool sensorIsActived = false;
 
   @override
   void initState() {
     _pdfViewerController = PdfViewerController();
-    super.initState(); 
-  }
-
-  double right = 180;
-  double left = 180;
-  int count = 0;
-
-  void setPosition(AccelerometerEvent event) {
-    if (event == null) {
-      return;
-    }
-    setState(() {
-      left = ((event.x * 20) + 160);
-    });
-    setState(() {
-      right = ((event.x * 20) - 160);
-    });
-  }
-
-  void startRead() {
-    if (accel == null) {
-      accel = accelerometerEvents.listen((AccelerometerEvent eve) {
-        setState(() {
-          event = eve;
-        });
-      });
-    } else {
-      accel.resume();
-    }
-  }
-
-  @override
-  void dispose() {
-    accel.cancel();
-    super.dispose();
+    // gyroscopeEvents.listen((GyroscopeEvent event) {
+    //   x = event.y;
+    //   setState(() {});
+    // });
+    super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
     final data = ModalRoute.of(context)!.settings.arguments as Book;
+    int page = 1;
+
     return Scaffold(
       resizeToAvoidBottomInset: false,
       appBar: AppBar(
         title: Text(data.title),
       ),
-      body: SfPdfViewer.asset(
-        data.pdf,
-        pageLayoutMode: PdfPageLayoutMode.single,
-        controller: _pdfViewerController,
-      ),
+      body: StreamBuilder<GyroscopeEvent>(
+          stream: SensorsPlatform.instance.gyroscopeEvents,
+          builder: (context, snapshot) {
+            if (snapshot.hasData) {
+              x = snapshot.data!.x;
+              y = snapshot.data!.y;
+              print([x, y]);
+              if (y > 0) {
+                _pdfViewerController.jumpToPage(page + 1);
+              } else if (y < 0) {
+                if (page == 1) {
+                  _pdfViewerController.jumpToPage(1);
+                } else {
+                  _pdfViewerController.jumpToPage(page - 1);
+                }
+              }
+            }
+            return SfPdfViewer.asset(
+              data.pdf,
+              pageLayoutMode: PdfPageLayoutMode.single,
+              onPageChanged: (PdfPageChangedDetails details) {
+                // print('New page');
+                // print(details.newPageNumber);
+                page = details.newPageNumber;
+              },
+              controller: _pdfViewerController,
+            );
+          }),
     );
   }
 }
